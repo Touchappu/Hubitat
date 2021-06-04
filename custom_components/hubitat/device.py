@@ -123,6 +123,26 @@ class Hub:
         return self._hub.event_url
 
     @property
+    def mode(self) -> Optional[str]:
+        """Return the current mode of this hub."""
+        return self._hub.mode
+
+    @property
+    def mode_supported(self) -> Optional[bool]:
+        """Return true if this hub supports mode setting and status."""
+        return self._hub.mode_supported
+
+    @property
+    def hsm_status(self) -> Optional[str]:
+        """Return the current HSM status of this hub."""
+        return self._hub.hsm_status
+
+    @property
+    def hsm_supported(self) -> Optional[bool]:
+        """Return true if this hub supports HSM setting and status."""
+        return self._hub.hsm_supported
+
+    @property
     def token(self) -> str:
         """The token used to access the Maker API."""
         return cast(str, self.config_entry.data.get(CONF_ACCESS_TOKEN))
@@ -205,6 +225,34 @@ class Hub:
                 CONF_TEMPERATURE_UNIT: self.temperature_unit,
             },
         )
+
+        if self.mode_supported:
+
+            def update_mode(mode: str):
+                hass.states.async_set(
+                    f"{self.entity_id}_mode",
+                    mode,
+                )
+
+            def handle_mode_event(event: Event):
+                update_mode(cast(str, event.value))
+
+            self._hub.add_mode_listener(handle_mode_event)
+            update_mode(self.mode or "")
+
+        if self.hsm_supported:
+
+            def update_hsm_status(status: str):
+                hass.states.async_set(
+                    f"{self.entity_id}_hsm_status",
+                    status,
+                )
+
+            def handle_hsm_status_event(event: Event):
+                update_hsm_status(cast(str, event.value))
+
+            self._hub.add_hsm_listener(handle_hsm_status_event)
+            update_hsm_status(self.hsm_status or "")
 
         return True
 
